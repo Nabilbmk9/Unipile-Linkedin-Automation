@@ -1,0 +1,44 @@
+# Environnement virtuel
+venv/
+.env
+.venv/
+
+# Fichiers Python compilés
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Fichiers de log
+*.log
+
+# SQLite (si utilisé avec Django)
+db.sqlite3
+
+# VS Code / PyCharm
+.vscode/
+.idea/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Déploiement
+*.bak
+*.swp
+
+# Migrations Django (optionnel si tu veux commit les migrations à terme)
+**/migrations/*.py
+**/migrations/*.pyc
+
+# Coverage / tests
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Fichiers générés par PyInstaller ou autres outils de packaging
+dist/
+build/
+*.spec
