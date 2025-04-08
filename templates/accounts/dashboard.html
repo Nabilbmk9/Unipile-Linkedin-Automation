@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Bonjour {{ user.username }}</h1>
+    <p>Bienvenue dans votre espace utilisateur.</p>
+    <a href="{% url 'logout' %}">Se déconnecter</a>
+</body>
+</html>
