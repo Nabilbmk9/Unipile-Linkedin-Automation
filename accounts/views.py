@@ -3,8 +3,10 @@ import json
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
-from .models import LinkedAccount, CustomUser
-from django.shortcuts import render, redirect
+
+from .forms import NewProspectionForm
+from .models import LinkedAccount, CustomUser, ProspectionSession
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -50,18 +52,29 @@ def is_linkedin_account_still_valid(account_id):
 def dashboard_view(request):
     linked_account = LinkedAccount.objects.filter(user=request.user).first()
 
-    if linked_account:
-        account_is_valid = is_linkedin_account_still_valid(linked_account.account_id)
-        if not account_is_valid:
-            linked_account.delete()
-            linked_account = None  # On l’efface localement
-    else:
-        account_is_valid = False  # rien en base, donc pas valide
+    if linked_account and not is_linkedin_account_still_valid(linked_account.account_id):
+        linked_account.delete()
+        linked_account = None
+
+    prospections = ProspectionSession.objects.filter(user=request.user)
+
+    # Statistiques calculées ici pour chaque campagne
+    prospection_stats = []
+    for p in prospections:
+        stats = {
+            "session": p,
+            "pending": p.targets.filter(status="pending").count(),
+            "sent": p.targets.filter(status="sent").count(),
+            "error": p.targets.filter(status="error").count(),
+        }
+        prospection_stats.append(stats)
 
     return render(request, "accounts/dashboard.html", {
         "user": request.user,
         "linked_account": linked_account,
+        "prospection_stats": prospection_stats,
     })
+
 
 
 def logout_view(request):
@@ -137,3 +150,29 @@ def unipile_callback(request):
             return HttpResponse("Erreur interne", status=500)
 
     return HttpResponse("Méthode non autorisée", status=405)
+
+
+@login_required
+def new_prospection_view(request):
+    if request.method == "POST":
+        form = NewProspectionForm(request.POST)
+        if form.is_valid():
+            prospection = form.save(commit=False)
+            prospection.user = request.user
+            prospection.save()
+            return redirect("dashboard")
+    else:
+        form = NewProspectionForm()
+
+    return render(request, "accounts/new_prospection.html", {"form": form})
+
+
+@login_required
+def toggle_prospection(request, pk):
+    prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+
+    if request.method == "POST":
+        prospection.is_active = not prospection.is_active
+        prospection.save()
+
+    return redirect("dashboard")

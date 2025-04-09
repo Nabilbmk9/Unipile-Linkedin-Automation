@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Nouvelle campagne de prospection</title>
+</head>
+<body>
+    <h1>Créer une nouvelle campagne de prospection</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Créer</button>
+    </form>
+
+    <br>
+    <a href="{% url 'dashboard' %}">⬅ Retour au dashboard</a>
+</body>
+</html>
