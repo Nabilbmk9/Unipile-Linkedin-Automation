@@ -9,7 +9,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from decouple import config
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def login_view(request):
@@ -71,7 +71,7 @@ def logout_view(request):
 
 @login_required
 def connect_linkedin(request):
-    expires_on = (datetime.utcnow() + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.999Z")
+    expires_on = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S.999Z")
 
     headers = {
         "X-API-KEY": config("UNIPILE_API_KEY"),
@@ -121,6 +121,9 @@ def unipile_callback(request):
             provider = data.get("provider", "LINKEDIN")
 
             user = CustomUser.objects.get(id=user_id)
+
+            if not account_id or not user_id:
+                return JsonResponse({"error": "Missing account_id or user_id"}, status=400)
 
             LinkedAccount.objects.update_or_create(
                 user=user,
