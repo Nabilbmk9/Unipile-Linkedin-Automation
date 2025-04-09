@@ -7,4 +7,6 @@ urlpatterns = [
     path('', views.login_view, name='login'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('logout/', views.logout_view, name='logout'),
+    path('connect-linkedin/', views.connect_linkedin, name='connect_linkedin'),
+    path('unipile-callback/', views.unipile_callback, name='unipile_callback'),
 ]

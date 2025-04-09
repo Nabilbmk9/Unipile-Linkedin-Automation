@@ -26,7 +26,12 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'd53a-2a01-e0a-1a4-6a40-7c47-3659-a835-1ff0.ngrok-free.app',
+    'bf09-2a01-e0a-1a4-6a40-1de2-d8cf-a2b0-8165.ngrok-free.app'
+]
 
 
 # Application definition

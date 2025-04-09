@@ -7,6 +7,20 @@
 <body>
     <h1>Bonjour {{ user.username }}</h1>
     <p>Bienvenue dans votre espace utilisateur.</p>
+
+    {% if linked_account %}
+        <p>✅ Ton compte LinkedIn est connecté !</p>
+        <p><strong>Provider :</strong> {{ linked_account.provider }}</p>
+        <p><strong>ID du compte :</strong> {{ linked_account.account_id }}</p>
+    {% else %}
+        <p>❌ Tu n'as pas encore connecté ton compte LinkedIn.</p>
+        <form method="post" action="{% url 'connect_linkedin' %}">
+            {% csrf_token %}
+            <button type="submit">Connecter mon compte LinkedIn</button>
+        </form>
+    {% endif %}
+
+    <br>
     <a href="{% url 'logout' %}">Se déconnecter</a>
 </body>
 </html>
