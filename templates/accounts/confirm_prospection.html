@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation campagne</title>
+</head>
+<body>
+    <h1>🛠️ Confirmation de la campagne "{{ prospection.name }}"</h1>
+
+    <p><strong>Lien de recherche :</strong><br>{{ prospection.search_url }}</p>
+    <p><strong>Message personnalisé :</strong><br>{{ prospection.note_template }}</p>
+    <p><strong>Nombre de demandes par jour :</strong><br>{{ prospection.daily_limit }}</p>
+
+    <form method="post" action="{% url 'launch_prospection' prospection.pk %}">
+        {% csrf_token %}
+        <button type="submit">✅ Lancer cette campagne</button>
+    </form>
+
+    <br>
+    <a href="{% url 'dashboard' %}">⬅ Annuler et revenir au dashboard</a>
+</body>
+</html>

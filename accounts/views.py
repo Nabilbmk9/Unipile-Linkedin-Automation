@@ -3,15 +3,17 @@ import json
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST
 
 from .forms import NewProspectionForm
-from .models import LinkedAccount, CustomUser, ProspectionSession
+from .models import LinkedAccount, CustomUser, ProspectionSession, ProspectionTarget
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from decouple import config
 from datetime import datetime, timedelta, timezone
+import time
 
 
 def login_view(request):
@@ -160,7 +162,7 @@ def new_prospection_view(request):
             prospection = form.save(commit=False)
             prospection.user = request.user
             prospection.save()
-            return redirect("dashboard")
+            return redirect("confirm_prospection", pk=prospection.pk)
     else:
         form = NewProspectionForm()
 
@@ -175,4 +177,80 @@ def toggle_prospection(request, pk):
         prospection.is_active = not prospection.is_active
         prospection.save()
 
+    return redirect("dashboard")
+
+
+@login_required
+def confirm_prospection_view(request, pk):
+    prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+
+    return render(request, "accounts/confirm_prospection.html", {
+        "prospection": prospection
+    })
+
+
+@login_required
+@require_POST
+def launch_prospection_view(request, pk):
+    prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+
+    # Étape 1 : appel à l'API de recherche
+    headers = {
+        "X-API-KEY": config("UNIPILE_API_KEY"),
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    payload = {
+        "account_id": request.user.linkedaccount.account_id,
+        "search_url": prospection.search_url
+    }
+
+    search_response = requests.post(
+        "https://api9.unipile.com:13973/api/v1/linkedin/search",
+        json=payload,
+        headers=headers
+    )
+
+    if search_response.status_code != 200:
+        messages.error(request, "Erreur lors de l'envoi du lien de recherche à Unipile.")
+        return redirect("dashboard")
+
+    resource_id = search_response.json().get("resource_id")
+    if not resource_id:
+        messages.error(request, "Impossible de récupérer l'identifiant d'export.")
+        return redirect("dashboard")
+
+    # Étape 2 : attendre que les données soient prêtes
+    time.sleep(5)  # petit délai avant de récupérer
+
+    raw_data_response = requests.get(
+        f"https://api9.unipile.com:13973/api/v1/raw-data/{resource_id}",
+        headers=headers
+    )
+
+    if raw_data_response.status_code != 200:
+        messages.error(request, "Erreur lors de la récupération des prospects.")
+        return redirect("dashboard")
+
+    results = raw_data_response.json().get("items", [])
+    count = 0
+
+    for result in results:
+        profile_id = result.get("profile_id")
+        name = result.get("full_name") or result.get("first_name", "Inconnu") + " " + result.get("last_name", "")
+
+        if profile_id:
+            ProspectionTarget.objects.create(
+                session=prospection,
+                profile_id=profile_id,
+                full_name=name.strip()
+            )
+            count += 1
+
+    # Activation de la campagne
+    prospection.is_active = True
+    prospection.save()
+
+    messages.success(request, f"{count} prospects ont été importés. La campagne est maintenant active.")
     return redirect("dashboard")

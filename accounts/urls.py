@@ -11,4 +11,6 @@ urlpatterns = [
     path('unipile-callback/', views.unipile_callback, name='unipile_callback'),
     path("prospection/new/", views.new_prospection_view, name="new_prospection"),
     path("prospection/<int:pk>/toggle/", views.toggle_prospection, name="toggle_prospection"),
+    path("prospection/<int:pk>/confirm/", views.confirm_prospection_view, name="confirm_prospection"),
+    path("prospection/<int:pk>/launch/", views.launch_prospection_view, name="launch_prospection"),
 ]
