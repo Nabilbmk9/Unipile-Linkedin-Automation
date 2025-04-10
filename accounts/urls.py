@@ -14,4 +14,5 @@ urlpatterns = [
     path("prospection/<int:pk>/launch/", views.launch_prospection_view, name="launch_prospection"),
     path("prospection/<int:pk>/confirmation/", views.confirm_prospection_view, name="confirm_prospection"),
     path("prospection/<int:pk>/detail/", views.prospection_detail_view, name="prospection_detail"),
+    path("prospection/<int:pk>/delete/", views.delete_prospection_view, name="delete_prospection"),
 ]

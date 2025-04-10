@@ -49,6 +49,10 @@
             <button type="submit">Activer</button>
         {% endif %}
     </form>
+     <form method="post" action="{% url 'delete_prospection' p.id %}" style="display:inline;" onsubmit="return confirm('Supprimer cette campagne ?');">
+        {% csrf_token %}
+        <button type="submit">🗑️ Supprimer</button>
+    </form>
 </td>
 
             </tr>

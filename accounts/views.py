@@ -209,7 +209,6 @@ def launch_prospection_view(request, pk):
     return redirect("dashboard")
 
 
-
 @login_required
 def prospection_detail_view(request, pk):
     prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
@@ -219,3 +218,15 @@ def prospection_detail_view(request, pk):
         "prospection": prospection,
         "targets": targets
     })
+
+
+@login_required
+@require_POST
+def delete_prospection_view(request, pk):
+    """
+    Supprime une campagne et toutes ses cibles associées.
+    """
+    prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+    prospection.delete()
+    messages.success(request, "Campagne supprimée avec succès.")
+    return redirect("dashboard")
