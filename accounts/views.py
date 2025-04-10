@@ -194,41 +194,18 @@ def confirm_prospection_view(request, pk):
 @login_required
 @require_POST
 def launch_prospection_view(request, pk):
-    print("🔄 Vue launch_prospection_view appelée")
+    """
+    Active simplement la campagne sans importer les profils.
+    La logique d'envoi sera gérée par la commande automatisée.
+    """
     prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
-    account = LinkedAccount.objects.filter(user=request.user).first()
-
-    if not account:
-        messages.error(request, "Aucun compte LinkedIn connecté.")
-        return redirect("dashboard")
-
-    results = get_profiles_from_search(account.account_id, prospection.search_url)
-    print(f"🔍 Résultats récupérés : {len(results)} profils")
-
-    if not results:
-        messages.error(request, "Impossible de récupérer des profils depuis Unipile.")
-        return redirect("dashboard")
-
-    count = 0
-    for result in results:
-        print(f"➕ Profil détecté : {result}")
-        profile_id = result.get("id")  # <- fix ici
-        name = result.get("name") or (
-            result.get("first_name", "Inconnu") + " " + result.get("last_name", "")
-        )
-
-        if profile_id:
-            ProspectionTarget.objects.create(
-                session=prospection,
-                profile_id=profile_id,
-                full_name=name.strip()
-            )
-            count += 1
 
     prospection.is_active = True
+    prospection.current_page = 1
+    prospection.position_in_page = 0
     prospection.save()
 
-    messages.success(request, f"{count} cibles ont été importées. La campagne est maintenant active.")
+    messages.success(request, "La campagne a été activée. Les invitations commenceront à être envoyées automatiquement.")
     return redirect("dashboard")
 
 

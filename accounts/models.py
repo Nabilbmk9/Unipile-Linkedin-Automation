@@ -30,6 +30,10 @@ class ProspectionSession(models.Model):
     last_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # ✅ NOUVEAUX CHAMPS
+    current_page = models.PositiveIntegerField(default=1)
+    position_in_page = models.PositiveIntegerField(default=0)
+
     def __str__(self):
         return self.name
 

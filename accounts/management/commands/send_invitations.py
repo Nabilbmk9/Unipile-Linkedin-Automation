@@ -3,65 +3,122 @@ import random
 from django.core.management.base import BaseCommand
 from django.utils.timezone import now
 from accounts.models import ProspectionSession, ProspectionTarget
+from accounts.models import LinkedAccount
 from decouple import config
 import requests
 import logging
+
+from accounts.services.unipile_api import get_profiles_from_search, send_invitation
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Envoie automatique de demandes de connexion LinkedIn via Unipile"
+    help = "Envoie progressive d'invitations LinkedIn via Unipile"
 
     def handle(self, *args, **kwargs):
-        headers = {
-            "X-API-KEY": config("UNIPILE_API_KEY"),
-            "accept": "application/json",
-            "content-type": "application/json"
-        }
-
         active_sessions = ProspectionSession.objects.filter(is_active=True)
 
         for session in active_sessions:
-            print(f"📤 Traitement de la campagne : {session.name}")
+            print(f"📤 Campagne : {session.name}")
+            account = LinkedAccount.objects.filter(user=session.user).first()
+            if not account:
+                print("❌ Aucun compte connecté pour cet utilisateur.")
+                continue
 
-            # Sélectionne les cibles en attente, limité au quota
-            targets = session.targets.filter(status="pending")[:session.daily_limit]
+            daily_limit = session.daily_limit
+            sent_today = 0
+            current_page = session.current_page
+            position = session.position_in_page
 
-            for target in targets:
-                try:
-                    payload = {
-                        "account_id": session.user.linkedaccount.account_id,
-                        "profile_id": target.profile_id,
-                        "note": session.note_template.replace("{{first_name}}", target.full_name.split(" ")[0])
-                    }
+            while sent_today < daily_limit:
+                print(f"🔎 Lecture de la page {current_page}, à partir du profil {position}")
 
-                    response = requests.post(
-                        "https://api9.unipile.com:13973/api/v1/linkedin/invitations",
-                        headers=headers,
-                        json=payload
+                # Ajout du paramètre ?page=X dans l’URL
+                page_url = _set_page_in_url(session.search_url, current_page)
+                profiles = get_profiles_from_search(account.account_id, page_url)
+
+                if not profiles:
+                    print("⚠️ Aucun profil trouvé sur cette page. Fin de campagne.")
+                    session.is_active = False
+                    session.save()
+                    break
+
+                for i in range(position, len(profiles)):
+                    profile = profiles[i]
+                    profile_id = profile.get("id")
+                    name = profile.get("name") or (
+                            profile.get("first_name", "Inconnu") + " " + profile.get("last_name", "")
                     )
 
-                    if response.status_code == 200:
-                        target.status = "sent"
-                        target.sent_at = now()
-                        print(f"✅ Invitation envoyée à {target.full_name}")
+                    # Vérifie si déjà envoyé
+                    if ProspectionTarget.objects.filter(session=session, profile_id=profile_id).exists():
+                        print(f"⏭️ Déjà traité : {name}")
+                        continue
+
+                    # Prépare le message
+                    message = session.note_template.replace("{{first_name}}", name.split(" ")[0])
+                    success, error_msg = send_invitation(account.account_id, profile_id, message)
+
+                    # Détection de blocage temporaire
+                    if "cannot_resend_yet" in error_msg:
+                        print("🚫 LinkedIn bloque temporairement les invitations. Arrêt de la campagne du jour.")
+                        session.current_page = current_page
+                        session.position_in_page = i  # on ne passe pas au suivant
+                        session.last_sent_at = now()
+                        session.save()
+                        return  # on sort proprement
+
+                    # Enregistrement du résultat
+                    target = ProspectionTarget.objects.create(
+                        session=session,
+                        profile_id=profile_id,
+                        full_name=name.strip(),
+                        status="sent" if success else "error",
+                        error_message=error_msg if not success else "",
+                        sent_at=now() if success else None,
+                    )
+
+                    if success:
+                        print(f"✅ Invitation envoyée à {name}")
+                        sent_today += 1
                     else:
-                        target.status = "error"
-                        target.error_message = f"HTTP {response.status_code}: {response.text}"
-                        print(f"❌ Erreur pour {target.full_name}: {response.status_code}")
+                        print(f"❌ Échec pour {name}: {error_msg}")
 
-                    target.save()
-                    session.last_sent_at = now()
-                    session.save()
+                    position = i + 1
 
-                    # Délai aléatoire entre 9 et 29 sec
+                    if sent_today >= daily_limit:
+                        print("🎯 Objectif journalier atteint.")
+                        break
+
                     delay = random.randint(9, 29)
                     print(f"⏱️ Pause de {delay}s...")
                     time.sleep(delay)
 
-                except Exception as e:
-                    target.status = "error"
-                    target.error_message = str(e)
-                    target.save()
-                    print(f"❌ Exception pour {target.full_name}: {e}")
+                # Si on a fini tous les profils de cette page, on passe à la suivante
+                if position >= len(profiles):
+                    current_page += 1
+                    position = 0
+                else:
+                    break  # on n'a pas fini la page mais on a atteint la limite
+
+            # Sauvegarde de la progression
+            session.current_page = current_page
+            session.position_in_page = position
+            session.last_sent_at = now()
+            session.save()
+            print(f"💾 Session mise à jour : page={current_page}, position={position}")
+
+
+def _set_page_in_url(url: str, page_number: int) -> str:
+    import re
+    pattern = r"([?&])page=\d+"
+    new_param = f"\\1page={page_number}"
+
+    if re.search(pattern, url):
+        return re.sub(pattern, new_param, url)
+    else:
+        if "?" in url:
+            return url + f"&page={page_number}"
+        else:
+            return url + f"?page={page_number}"
