@@ -40,15 +40,17 @@
                 <td>{{ pstat.sent }}</td>
                 <td>{{ pstat.error }}</td>
                 <td>
-                    <form method="post" action="{% url 'toggle_prospection' p.id %}">
-                        {% csrf_token %}
-                        {% if p.is_active %}
-                            <button type="submit">Stopper</button>
-                        {% else %}
-                            <button type="submit">Activer</button>
-                        {% endif %}
-                    </form>
-                </td>
+    <a href="{% url 'prospection_detail' p.id %}">📄 Voir</a>
+    <form method="post" action="{% url 'toggle_prospection' p.id %}">
+        {% csrf_token %}
+        {% if p.is_active %}
+            <button type="submit">Stopper</button>
+        {% else %}
+            <button type="submit">Activer</button>
+        {% endif %}
+    </form>
+</td>
+
             </tr>
             {% endwith %}
         {% endfor %}

@@ -5,18 +5,21 @@
     <title>Confirmation campagne</title>
 </head>
 <body>
-    <h1>🛠️ Confirmation de la campagne "{{ prospection.name }}"</h1>
+    <h1>Confirmation de la campagne</h1>
 
-    <p><strong>Lien de recherche :</strong><br>{{ prospection.search_url }}</p>
-    <p><strong>Message personnalisé :</strong><br>{{ prospection.note_template }}</p>
-    <p><strong>Nombre de demandes par jour :</strong><br>{{ prospection.daily_limit }}</p>
+    <p>Tu es sur le point de lancer la campagne <strong>{{ prospection.name }}</strong>.</p>
+
+    <ul>
+        <li>🔗 Lien LinkedIn : <a href="{{ prospection.search_url }}" target="_blank">{{ prospection.search_url }}</a></li>
+        <li>📤 Invitations par jour : {{ prospection.daily_limit }}</li>
+        <li>📝 Message personnalisé : <em>{{ prospection.note_template }}</em></li>
+        <li>🎯 Les prospects seront automatiquement importés après validation.</li>
+    </ul>
 
     <form method="post" action="{% url 'launch_prospection' prospection.pk %}">
         {% csrf_token %}
-        <button type="submit">✅ Lancer cette campagne</button>
+        <button type="submit">✅ Lancer la campagne</button>
+        <a href="{% url 'dashboard' %}">Annuler</a>
     </form>
-
-    <br>
-    <a href="{% url 'dashboard' %}">⬅ Annuler et revenir au dashboard</a>
 </body>
 </html>

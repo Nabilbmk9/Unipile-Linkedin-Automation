@@ -15,6 +15,8 @@ from decouple import config
 from datetime import datetime, timedelta, timezone
 import time
 
+from .services.unipile_api import get_profiles_from_search
+
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -161,6 +163,7 @@ def new_prospection_view(request):
         if form.is_valid():
             prospection = form.save(commit=False)
             prospection.user = request.user
+            prospection.is_active = False  # on attend la confirmation
             prospection.save()
             return redirect("confirm_prospection", pk=prospection.pk)
     else:
@@ -183,7 +186,6 @@ def toggle_prospection(request, pk):
 @login_required
 def confirm_prospection_view(request, pk):
     prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
-
     return render(request, "accounts/confirm_prospection.html", {
         "prospection": prospection
     })
@@ -192,53 +194,28 @@ def confirm_prospection_view(request, pk):
 @login_required
 @require_POST
 def launch_prospection_view(request, pk):
+    print("🔄 Vue launch_prospection_view appelée")
     prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+    account = LinkedAccount.objects.filter(user=request.user).first()
 
-    # Étape 1 : appel à l'API de recherche
-    headers = {
-        "X-API-KEY": config("UNIPILE_API_KEY"),
-        "accept": "application/json",
-        "content-type": "application/json"
-    }
-
-    payload = {
-        "account_id": request.user.linkedaccount.account_id,
-        "search_url": prospection.search_url
-    }
-
-    search_response = requests.post(
-        "https://api9.unipile.com:13973/api/v1/linkedin/search",
-        json=payload,
-        headers=headers
-    )
-
-    if search_response.status_code != 200:
-        messages.error(request, "Erreur lors de l'envoi du lien de recherche à Unipile.")
+    if not account:
+        messages.error(request, "Aucun compte LinkedIn connecté.")
         return redirect("dashboard")
 
-    resource_id = search_response.json().get("resource_id")
-    if not resource_id:
-        messages.error(request, "Impossible de récupérer l'identifiant d'export.")
+    results = get_profiles_from_search(account.account_id, prospection.search_url)
+    print(f"🔍 Résultats récupérés : {len(results)} profils")
+
+    if not results:
+        messages.error(request, "Impossible de récupérer des profils depuis Unipile.")
         return redirect("dashboard")
 
-    # Étape 2 : attendre que les données soient prêtes
-    time.sleep(5)  # petit délai avant de récupérer
-
-    raw_data_response = requests.get(
-        f"https://api9.unipile.com:13973/api/v1/raw-data/{resource_id}",
-        headers=headers
-    )
-
-    if raw_data_response.status_code != 200:
-        messages.error(request, "Erreur lors de la récupération des prospects.")
-        return redirect("dashboard")
-
-    results = raw_data_response.json().get("items", [])
     count = 0
-
     for result in results:
-        profile_id = result.get("profile_id")
-        name = result.get("full_name") or result.get("first_name", "Inconnu") + " " + result.get("last_name", "")
+        print(f"➕ Profil détecté : {result}")
+        profile_id = result.get("id")  # <- fix ici
+        name = result.get("name") or (
+            result.get("first_name", "Inconnu") + " " + result.get("last_name", "")
+        )
 
         if profile_id:
             ProspectionTarget.objects.create(
@@ -248,9 +225,20 @@ def launch_prospection_view(request, pk):
             )
             count += 1
 
-    # Activation de la campagne
     prospection.is_active = True
     prospection.save()
 
-    messages.success(request, f"{count} prospects ont été importés. La campagne est maintenant active.")
+    messages.success(request, f"{count} cibles ont été importées. La campagne est maintenant active.")
     return redirect("dashboard")
+
+
+
+@login_required
+def prospection_detail_view(request, pk):
+    prospection = get_object_or_404(ProspectionSession, pk=pk, user=request.user)
+    targets = prospection.targets.all()
+
+    return render(request, "accounts/prospection_detail.html", {
+        "prospection": prospection,
+        "targets": targets
+    })

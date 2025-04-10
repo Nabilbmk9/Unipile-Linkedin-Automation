@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détail de la campagne</title>
+</head>
+<body>
+    <h1>🎯 Cibles de la campagne : {{ prospection.name }}</h1>
+    <p><a href="{% url 'dashboard' %}">⬅ Retour au dashboard</a></p>
+
+    {% if targets %}
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Nom</th>
+                <th>Status</th>
+                <th>Date d’envoi</th>
+                <th>Erreur éventuelle</th>
+            </tr>
+            {% for t in targets %}
+            <tr>
+                <td>{{ t.full_name }}</td>
+                <td>{{ t.status }}</td>
+                <td>{{ t.sent_at|default:"—" }}</td>
+                <td>{{ t.error_message|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>Aucune cible importée pour l’instant.</p>
+    {% endif %}
+</body>
+</html>
