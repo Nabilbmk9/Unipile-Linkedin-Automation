@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Messages non lus</title>
+</head>
+<body>
+    <h1>📨 Nouveaux messages LinkedIn</h1>
+    <a href="{% url 'dashboard' %}">⬅ Retour au dashboard</a>
+
+    {% if chats %}
+        <ul>
+            {% for chat in chats %}
+                <li style="margin-bottom: 15px;">
+                    <strong>{{ chat.names }}</strong><br>
+                    <em>{{ chat.last_message|default:"(Aucun message trouvé)" }}</em><br>
+                    <a href="#">✏️ Répondre</a> <!-- À brancher plus tard -->
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>✅ Tous les messages ont été lus.</p>
+    {% endif %}
+</body>
+</html>
