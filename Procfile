@@ -1,0 +1,1 @@
+web: gunicorn linkedin_automation_backend.wsgi 
