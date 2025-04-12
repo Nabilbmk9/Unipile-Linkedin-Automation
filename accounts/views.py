@@ -101,9 +101,9 @@ def connect_linkedin(request):
         "providers": ["LINKEDIN"],
         "api_url": "https://api9.unipile.com:13973",
         "expiresOn": expires_on,
-        "notify_url": "https://bf09-2a01-e0a-1a4-6a40-1de2-d8cf-a2b0-8165.ngrok-free.app/unipile-callback/",
+        "notify_url": "https://web-production-f81a1.up.railway.app/dashboard/",
         "name": str(request.user.id),
-        "success_redirect_url": "https://bf09-2a01-e0a-1a4-6a40-1de2-d8cf-a2b0-8165.ngrok-free.app/dashboard/",
+        "success_redirect_url": "https://web-production-f81a1.up.railway.app/dashboard/",
         "bypass_success_screen": True,
     }
 
