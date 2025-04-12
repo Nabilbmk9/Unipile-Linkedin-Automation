@@ -11,6 +11,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+from django.utils.log import DEFAULT_LOGGING
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from decouple import config
 import dj_database_url
 
@@ -27,7 +33,15 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'your-dev-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'web-production-f81a1.up.railway.app',
+    'localhost',
+    '127.0.0.1'
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://web-production-f81a1.up.railway.app'
+]
 
 
 # Application definition
@@ -76,7 +90,10 @@ WSGI_APPLICATION = 'linkedin_automation_backend.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(conn_max_age=600)
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600
+    )
 }
 
 
