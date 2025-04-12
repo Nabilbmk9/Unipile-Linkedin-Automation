@@ -27,7 +27,6 @@ Thumbs.db
 *.swp
 
 # Migrations Django (optionnel si tu veux commit les migrations à terme)
-**/migrations/*.py
 **/migrations/*.pyc
 
 # Coverage / tests
