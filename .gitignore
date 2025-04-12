@@ -44,3 +44,6 @@ build/
 
 # Nouveau dossier
 .cursor/
+
+# Fichiers statiques Django
+staticfiles/
