@@ -13,9 +13,6 @@ import os
 from pathlib import Path
 from django.utils.log import DEFAULT_LOGGING
 
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from decouple import config
 import dj_database_url
