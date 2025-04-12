@@ -101,7 +101,7 @@ def connect_linkedin(request):
         "providers": ["LINKEDIN"],
         "api_url": "https://api9.unipile.com:13973",
         "expiresOn": expires_on,
-        "notify_url": "https://web-production-f81a1.up.railway.app/dashboard/",
+        "notify_url": "https://web-production-f81a1.up.railway.app/unipile_callback/",
         "name": str(request.user.id),
         "success_redirect_url": "https://web-production-f81a1.up.railway.app/dashboard/",
         "bypass_success_screen": True,
