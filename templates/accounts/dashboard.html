@@ -1,78 +1,138 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-</head>
-<body>
-    <h1>Bonjour {{ user.username }}</h1>
-    <p>Bienvenue dans votre espace utilisateur.</p>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title mb-3">État de la connexion LinkedIn</h4>
+                    {% if linked_account %}
+                        <div class="alert alert-success d-flex align-items-center" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <div>
+                                Votre compte LinkedIn est connecté
+                                <div class="small text-muted mt-1">
+                                    ID du compte : {{ linked_account.account_id }}
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning d-flex align-items-center" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <div>
+                                Vous n'avez pas encore connecté votre compte LinkedIn
+                            </div>
+                        </div>
+                        <form method="post" action="{% url 'connect_linkedin' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fab fa-linkedin me-2"></i>Connecter mon compte LinkedIn
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% if linked_account %}
-        <p>✅ Ton compte LinkedIn est connecté !</p>
-        <p><strong>Provider :</strong> {{ linked_account.provider }}</p>
-        <p><strong>ID du compte :</strong> {{ linked_account.account_id }}</p>
-        <a href="{% url 'new_prospection' %}">📋 Créer une nouvelle campagne</a>
-        <h2>📋 Mes campagnes de prospection</h2>
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>Mes campagnes de prospection</h4>
+                    <a href="{% url 'new_prospection' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nouvelle campagne
+                    </a>
+                </div>
 
-{% if prospection_stats %}
-    <table border="1" cellpadding="8">
-        <tr>
-            <th>Nom</th>
-            <th>Statut</th>
-            <th>En attente</th>
-            <th>Envoyées</th>
-            <th>Erreurs</th>
-            <th>Action</th>
-        </tr>
-        {% for pstat in prospection_stats %}
-            {% with p=pstat.session %}
-            <tr>
-                <td>{{ p.name }}</td>
-                <td>
-                    {% if p.is_active %}
-                        🟢 Active
-                    {% else %}
-                        🔴 Inactive
-                    {% endif %}
-                </td>
-                <td>{{ pstat.pending }}</td>
-                <td>{{ pstat.sent }}</td>
-                <td>{{ pstat.error }}</td>
-                <td>
-    <a href="{% url 'prospection_detail' p.id %}">📄 Voir</a>
-    <form method="post" action="{% url 'toggle_prospection' p.id %}">
-        {% csrf_token %}
-        {% if p.is_active %}
-            <button type="submit">Stopper</button>
-        {% else %}
-            <button type="submit">Activer</button>
-        {% endif %}
-    </form>
-     <form method="post" action="{% url 'delete_prospection' p.id %}" style="display:inline;" onsubmit="return confirm('Supprimer cette campagne ?');">
-        {% csrf_token %}
-        <button type="submit">🗑️ Supprimer</button>
-    </form>
-</td>
-
-            </tr>
-            {% endwith %}
-        {% endfor %}
-    </table>
-{% else %}
-    <p>Tu n'as encore lancé aucune campagne.</p>
-{% endif %}
-
-
-    {% else %}
-        <p>❌ Tu n'as pas encore connecté ton compte LinkedIn.</p>
-        <form method="post" action="{% url 'connect_linkedin' %}">
-            {% csrf_token %}
-            <button type="submit">Connecter mon compte LinkedIn</button>
-        </form>
+                {% if prospection_stats %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Statut</th>
+                                    <th>En attente</th>
+                                    <th>Envoyées</th>
+                                    <th>Erreurs</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pstat in prospection_stats %}
+                                    {% with p=pstat.session %}
+                                    <tr>
+                                        <td>{{ p.name }}</td>
+                                        <td>
+                                            {% if p.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ pstat.pending }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">{{ pstat.sent }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">{{ pstat.error }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'prospection_detail' p.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <form method="post" action="{% url 'toggle_prospection' p.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    {% if p.is_active %}
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                            <i class="fas fa-pause"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </form>
+                                                <form method="post" action="{% url 'delete_prospection' p.id %}" class="d-inline" 
+                                                      onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette campagne ?');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endwith %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Vous n'avez encore lancé aucune campagne.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
     {% endif %}
+</div>
+{% endblock %}
 
-    <br>
-    <a href="{% url 'logout' %}">Se déconnecter</a>
-</body>
-</html>
+{% block extra_js %}
+<script>
+    // Active les tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}

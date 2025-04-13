@@ -1,13 +1,24 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 
 class CustomUser(AbstractUser):
     """
-    Modèle utilisateur personnalisé (identique à User de base pour l’instant).
+    Modèle utilisateur personnalisé avec email unique.
     """
-    pass
+    email = models.EmailField(_('email address'), unique=True)
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    def __str__(self):
+        return self.email
+
+    class Meta:
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
 
 
 class LinkedAccount(models.Model):
@@ -29,8 +40,6 @@ class ProspectionSession(models.Model):
     is_active = models.BooleanField(default=True)
     last_sent_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
-    # ✅ NOUVEAUX CHAMPS
     current_page = models.PositiveIntegerField(default=1)
     position_in_page = models.PositiveIntegerField(default=0)
 

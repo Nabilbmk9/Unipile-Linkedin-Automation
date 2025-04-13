@@ -5,7 +5,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 
-from .forms import NewProspectionForm
+from .forms import (
+    NewProspectionForm, CustomUserCreationForm,
+    CustomPasswordResetForm, CustomSetPasswordForm, LoginForm
+)
 from .models import LinkedAccount, CustomUser, ProspectionSession, ProspectionTarget
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
@@ -14,26 +17,54 @@ from django.contrib import messages
 from decouple import config
 from datetime import datetime, timedelta, timezone
 import time
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+from django.contrib.auth.views import (
+    PasswordResetView, PasswordResetDoneView,
+    PasswordResetConfirmView, PasswordResetCompleteView
+)
 
 from .services.unipile_api import get_profiles_from_search
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, _("Votre compte a été créé avec succès !"))
+            return redirect('dashboard')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'accounts/register.html', {'form': form})
 
 
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
-
+        
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-
-        if user is not None:
-            login(request, user)
-            return redirect('dashboard')
-        else:
-            messages.error(request, "Identifiants incorrects.")
-
-    return render(request, 'accounts/login.html')
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data.get('email')
+            password = form.cleaned_data.get('password')
+            remember_me = form.cleaned_data.get('remember_me')
+            user = authenticate(request, username=email, password=password)
+            if user is not None:
+                login(request, user)
+                if not remember_me:
+                    request.session.set_expiry(0)
+                messages.success(request, _("Connexion réussie !"))
+                return redirect('dashboard')
+            else:
+                messages.error(request, _("Email ou mot de passe incorrect."))
+    else:
+        form = LoginForm()
+    return render(request, 'accounts/login.html', {'form': form})
 
 
 def is_linkedin_account_still_valid(account_id):
@@ -80,9 +111,10 @@ def dashboard_view(request):
     })
 
 
-
+@login_required
 def logout_view(request):
     logout(request)
+    messages.success(request, _("Vous avez été déconnecté avec succès."))
     return redirect('login')
 
 
@@ -158,6 +190,12 @@ def unipile_callback(request):
 
 @login_required
 def new_prospection_view(request):
+    # Vérifier si l'utilisateur a un compte LinkedIn connecté
+    linked_account = LinkedAccount.objects.filter(user=request.user).first()
+    if not linked_account:
+        messages.error(request, "Vous devez d'abord connecter votre compte LinkedIn pour créer une campagne de prospection.")
+        return redirect('dashboard')
+
     if request.method == "POST":
         form = NewProspectionForm(request.POST)
         if form.is_valid():
@@ -230,3 +268,24 @@ def delete_prospection_view(request, pk):
     prospection.delete()
     messages.success(request, "Campagne supprimée avec succès.")
     return redirect("dashboard")
+
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'accounts/password_reset.html'
+    email_template_name = 'accounts/password_reset_email.html'
+    form_class = CustomPasswordResetForm
+    success_url = reverse_lazy('password_reset_done')
+
+
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'accounts/password_reset_done.html'
+
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    template_name = 'accounts/password_reset_confirm.html'
+    form_class = CustomSetPasswordForm
+    success_url = reverse_lazy('password_reset_complete')
+
+
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'accounts/password_reset_complete.html'

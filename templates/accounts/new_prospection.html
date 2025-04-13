@@ -1,19 +1,94 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Nouvelle campagne de prospection</title>
-</head>
-<body>
-    <h1>Créer une nouvelle campagne de prospection</h1>
+{% extends 'base.html' %}
+{% load static %}
 
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Créer</button>
-    </form>
+{% block title %}Nouvelle campagne de prospection{% endblock %}
 
-    <br>
-    <a href="{% url 'dashboard' %}">⬅ Retour au dashboard</a>
-</body>
-</html>
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="card-title mb-0">Nouvelle campagne de prospection</h2>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Retour
+                        </a>
+                    </div>
+
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Nom de la campagne</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.name.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Donnez un nom descriptif à votre campagne pour la retrouver facilement.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.search_url.id_for_label }}" class="form-label">URL de recherche LinkedIn</label>
+                            {{ form.search_url }}
+                            {% if form.search_url.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.search_url.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Collez l'URL d'une recherche LinkedIn que vous souhaitez prospecter.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.note_template.id_for_label }}" class="form-label">Message personnalisé</label>
+                            {{ form.note_template }}
+                            {% if form.note_template.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.note_template.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Utilisez {{first_name}} pour personnaliser le message avec le prénom de la personne.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.daily_limit.id_for_label }}" class="form-label">Limite quotidienne</label>
+                            {{ form.daily_limit }}
+                            {% if form.daily_limit.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.daily_limit.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                            <div class="form-text">
+                                Nombre maximum d'invitations à envoyer par jour.
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-play me-2"></i>Lancer la campagne
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
